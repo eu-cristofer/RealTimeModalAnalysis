@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "modal_analysis"
+version = "0.1.0"
+description = "A real-time modal analysis library"
+authors = [
+    { name = "Cristofer Antoni", email = "cristofercosta@yahoo.com.br" }
+]
+readme = "README.md"
+license = { text = "Apache 2.0" }
+requires-python = ">=3.6"
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "nidaqmx"
+]
+[project.optional-dependencies]
+dev = [
+    "black",
+    "build",
+    "pytest"
+]
+[project.urls]
+Homepage = "https://github.com/eu-cristofer/CentrifugalPump"
