@@ -28,6 +28,7 @@ from scipy.signal import correlate
 from config import CHANNELS
 import time
 
+
 import sqlite3
 
 
@@ -120,9 +121,16 @@ class VibrationLiveStream(QWidget):
             timestamps = np.linspace(save_end_time - duration,
                                      save_end_time,
                                      points_to_save)
+            timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+
+            # Saving in a dabase in separate files
+            separate_files = True
+            if separate_files:
+                db_name = f"vibration_data_{timestamp_str}.sqlite"
+            else:
+                db_name = "vibration_data00.sqlite"
 
             # Create database and save data
-            db_name = "vibration_data00.sqlite"
             conn = sqlite3.connect(db_name)
             c = conn.cursor()
             c.execute("""CREATE TABLE IF NOT EXISTS vibration_samples (
