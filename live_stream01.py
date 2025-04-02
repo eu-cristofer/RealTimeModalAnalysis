@@ -27,11 +27,7 @@ import pyqtgraph as pg
 from scipy.signal import correlate
 from config import CHANNELS
 import time
-
-
 import sqlite3
-
-
 
 class VibrationLiveStream(QWidget):
     """Main window class for real-time vibration live streaming GUI."""
@@ -85,7 +81,7 @@ class VibrationLiveStream(QWidget):
         # Acquisition parameters for live stream
         self.sample_rate = 1000  # Hz
         self.chunk_size = 256    # Samples per read
-        self.window_seconds = 10  # Start with a 10-second timespan
+        self.window_seconds = 15  # Start with a 10-second timespan
         self.max_points_window = int(self.sample_rate * self.window_seconds)
         self.total_time_elapsed = 0
 
