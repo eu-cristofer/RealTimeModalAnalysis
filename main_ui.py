@@ -44,6 +44,8 @@ from theme_engine import load_theme, generate_stylesheet
 from data_sources.synthetic_stream import SyntheticStream
 from data_sources.sensor_stream import SensorStream
 
+import logging
+
 
 
 class MainWindow(QMainWindow):
@@ -115,6 +117,17 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
 
+        # Novo código para logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler("modal_analyzer.log"),
+                logging.StreamHandler()
+            ]
+        )
+        logging.info("Application initialized")
+
         # Window setup
         self.setWindowTitle("Realtime Modal Analyzer")
         # self.setGeometry(100, 100, 1200, 800)
@@ -130,13 +143,41 @@ class MainWindow(QMainWindow):
         # Data streaming attributes
         self.data_stream = None
         self.sample_rate = 1000  # Hz
+        logging.info(f"Sample rate: {self.sample_rate} Hz")
         self.chunk_size = 256  # Number of samples per chunk
+        logging.info(f"Chunk Size: {self.chunk_size} Samples")
+
+        """
+        Important Qt Rule:
+
+        In Qt, a widget (like a QLabel) can only be shown in one place in the layout hierarchy.
+        When you add the same QLabel to a second layout, it is removed from the first.
+
+        That means:
+
+            If create_time_tab() runs first and adds the label to the Time & Correlation tab, then
+
+            create_fft_tab() runs and adds the same label to the FFT tab → it will disappear from the Time tab!
+        """
+
+        self.stats_label_time = QLabel("No data available")
+        self.stats_label_fft = QLabel("No data available")
+
+        self.stats_label_time.setStyleSheet("font-family: monospace;")
+        self.stats_label_time.setToolTip("Displays statistical information about the signal")
+
+        self.stats_label_fft.setStyleSheet("font-family: monospace;")
+        self.stats_label_fft.setToolTip("Displays statistical information about the signal")
 
         # Start the user interface
         self.init_ui()
 
         # Apply initial style
         self.change_theme(self.current_theme)
+
+        
+        
+
 
         # Adding stream
         self.data_stream = None
@@ -153,6 +194,7 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.update_plots)
         self.timer.start(50)
         self.status_bar.showMessage("Streaming...")
+        logging.info(f"Streaming...")
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
 
@@ -198,6 +240,17 @@ class MainWindow(QMainWindow):
             buf[:-n] = buf[n:]
             buf[-n:] = data[i]
 
+        # --- Compute and show basic statistics ---
+        rms_vals = [np.sqrt(np.mean(self.buffers[i]**2)) for i in range(4)]
+        peak_vals = [np.max(np.abs(self.buffers[i])) for i in range(4)]
+        stats_text = "\n".join([
+            f"CH{i}: RMS = {rms_vals[i]:.3f} g, Peak = {peak_vals[i]:.3f} g"
+            for i in range(4)
+        ])
+
+        self.stats_label_time.setText("Stats (from time-domain buffer):\n" + stats_text)
+        self.stats_label_fft.setText("Stats (from time-domain buffer):\n" + stats_text)
+
         t = np.linspace(0, 10, self.buffer_size)
         for i in range(4):
             self.time_curves[i].setData(t, self.buffers[i])
@@ -225,8 +278,6 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
 
-
-
         main_layout = QHBoxLayout(central)
         main_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -243,6 +294,7 @@ class MainWindow(QMainWindow):
         # feedback to the user.
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
+        logging.info(f"UI created succesfully")
 
 
 
@@ -305,13 +357,11 @@ class MainWindow(QMainWindow):
         # params_group.setLayout(params_layout)
         # control_layout.addWidget(params_group)
 
+
         # Stats display group
         stats_group = QGroupBox("Statistics")
         stats_layout = QVBoxLayout(stats_group)
-        self.stats_label = QLabel("No data available")
-        self.stats_label.setStyleSheet("font-family: monospace;")
-        self.stats_label.setToolTip("Displays statistical information about the signal")
-        stats_layout.addWidget(self.stats_label)
+        stats_layout.addWidget(self.stats_label_time)
         control_layout.addWidget(stats_group)
 
         # Add stretch to push controls to the top
@@ -322,7 +372,7 @@ class MainWindow(QMainWindow):
         # --- Charts panel on the rigth ---
         charts_panel = QWidget()
         charts_layout = QVBoxLayout(charts_panel)
-        control_layout.setContentsMargins(5, 5, 5, 5)
+        charts_layout.setContentsMargins(5, 5, 5, 5)
 
         # Time-domain signal plot
         self.time_plot = pg.PlotWidget(title="Time Domain Signal")
@@ -385,10 +435,7 @@ class MainWindow(QMainWindow):
         # Stats display group
         stats_group = QGroupBox("Statistics")
         stats_layout = QVBoxLayout(stats_group)
-        self.stats_label = QLabel("No data available")
-        self.stats_label.setStyleSheet("font-family: monospace;")
-        self.stats_label.setToolTip("Displays statistical information about the signal")
-        stats_layout.addWidget(self.stats_label)
+        stats_layout.addWidget(self.stats_label_fft)
         control_layout.addWidget(stats_group)
 
         # Add stretch to push controls to top
@@ -491,7 +538,8 @@ class MainWindow(QMainWindow):
         self.stop_btn.setEnabled(False)
 
         # Reset the status bar message
-        self.status_bar.showMessage("Stopped and charts reset.")
+        self.status_bar.showMessage("Stopped.")
+        logging.info(f"Stopped.")
 
         # Clear all plots for time-domain signals
         for curve in self.time_curves:
@@ -557,6 +605,7 @@ class MainWindow(QMainWindow):
         self.init_plot_data()
         self.timer.start(50)
         self.status_bar.showMessage(f"Switched to {source_name} stream")
+        logging.info(f"Switched to {source_name} stream")
 
 
     def apply_theme(self, name):
@@ -590,8 +639,6 @@ class MainWindow(QMainWindow):
         self.current_theme = theme_name.lower()
         apply_theme(self, self.current_theme)
         self.apply_theme(theme_name)
-
-        
 
         # Change background color of plots based on theme
         bg_color = "k" if self.current_theme == "dark" else "w"
@@ -649,3 +696,4 @@ class MainWindow(QMainWindow):
         conn.commit()
         conn.close()
         self.status_bar.showMessage(f"Saved {duration_sec}s to {filename}")
+        logging.info(f"Saved {duration_sec}s to {filename}")
