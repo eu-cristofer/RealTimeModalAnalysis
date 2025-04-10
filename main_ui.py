@@ -116,22 +116,6 @@ class MainWindow(QMainWindow):
 
         """
         super().__init__()
-
-        # Novo código para logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler("modal_analyzer.log"),
-                logging.StreamHandler()
-            ]
-        )
-        logging.info("Application initialized")
-
-        # Window setup
-        self.setWindowTitle("Realtime Modal Analyzer")
-        # self.setGeometry(100, 100, 1200, 800)
-
         # Current theme
         self.current_theme = "dark"
 
@@ -175,14 +159,21 @@ class MainWindow(QMainWindow):
         # Apply initial style
         self.change_theme(self.current_theme)
 
-        
-        
-
-
         # Adding stream
         self.data_stream = None
         self.sample_rate = 1000
         self.chunk_size = 256
+
+        # Novo código para logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler("modal_analyzer.log"),
+                logging.StreamHandler()
+            ]
+        )
+        logging.info("RTMA initialized")
         
     def set_data_source(self, stream):
         self.data_stream = stream
@@ -274,6 +265,10 @@ class MainWindow(QMainWindow):
         Sets up the main user interface layout and components.
 
         """
+        # Window setup
+        self.setWindowTitle("Realtime Modal Analyzer")
+        # self.setGeometry(100, 100, 1200, 800)
+
         # Central widget and layout
         central = QWidget()
         self.setCentralWidget(central)
@@ -331,32 +326,6 @@ class MainWindow(QMainWindow):
         sqlite_button.clicked.connect(self.save_to_sqlite)
         sqlite_layout.addWidget(sqlite_button)
         control_layout.addWidget(sqlite_group)
-
-
-        # sqlite_layout =  QHBoxLayout()
-        # save_layout.addWidget(QLabel("Save Last N Seconds:"))
-        # save_layout.addWidget(QLineEdit("5"))
-        # save_button = QPushButton("Save to SQLite")
-        # save_button.clicked.connect(self.save_to_sqlite)
-        # save_layout.addWidget(save_button)
-        # control_layout.addWidget(params_group)
-
-        # # Frequency scale control
-        # freq_layout = QHBoxLayout()
-        # freq_layout.addWidget(QLabel("Save Last N Seconds"))
-        # self.freq_slider = QSlider(Qt.Horizontal)
-        # self.freq_slider.setRange(1, 10)  # Example range 1 to 10 kHz
-        # self.freq_slider.setValue(5)
-        # self.freq_slider.valueChanged.connect(self.update_fft_scale)
-        # self.freq_slider.setToolTip("Adjust the maximum frequency displayed in the FFT plot")
-        # freq_layout.addWidget(self.freq_slider)
-        # self.freq_value = QLabel("5")
-        # self.freq_value.setMinimumWidth(40)
-        # freq_layout.addWidget(self.freq_value)
-        # params_layout.addLayout(freq_layout)
-        # params_group.setLayout(params_layout)
-        # control_layout.addWidget(params_group)
-
 
         # Stats display group
         stats_group = QGroupBox("Statistics")
@@ -477,31 +446,21 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         # Add toolbar actions
-        self.start_btn = QPushButton(QIcon.fromTheme("media-playback-start"), "Start Live Stream")
+        self.start_btn = QPushButton(QIcon.fromTheme("media-playback-start"), "⏯️ Start Live Stream")
         self.start_btn.setToolTip("Start data acquisition and visualization")
         self.start_btn.clicked.connect(self.start_stream)
 
-        self.stop_btn = QPushButton(QIcon.fromTheme("media-playback-stop"), "Stop Live Stream")
+        self.stop_btn = QPushButton(QIcon.fromTheme("media-playback-stop"), "⏹️ Stop Live Stream")
         self.stop_btn.setToolTip("Stop data acquisition")
         self.stop_btn.clicked.connect(self.stop_stream)
         self.stop_btn.setEnabled(False)
 
-        self.export_btn = QPushButton(QIcon.fromTheme('document-save'), "Export")
+        self.export_btn = QPushButton(QIcon.fromTheme('document-save'), "⏺️ Export")
         self.export_btn.setToolTip("Export data or image")
 
         toolbar.addWidget(self.start_btn)
         toolbar.addWidget(self.stop_btn)
         toolbar.addWidget(self.export_btn)
-
-        # # Modification to add SQLITE3 capabilities to the application 
-        # self.save_duration_label = QLabel("Save Last N Seconds:")
-        # self.save_duration_input = QLineEdit("5")  # Default suggestion
-        # self.save_button = QPushButton("Save to SQLite")
-        # self.save_button.clicked.connect(self.save_to_sqlite)
-
-        # toolbar.addWidget(self.save_duration_label)
-        # toolbar.addWidget(self.save_duration_input)
-        # toolbar.addWidget(self.save_button)
 
         # Add spacer
         toolbar.addSeparator()

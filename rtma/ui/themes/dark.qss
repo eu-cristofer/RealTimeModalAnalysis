@@ -1,0 +1,12 @@
+QWidget {
+    background-color: #2b2b2b;
+    color: #eeeeee;
+}
+QPushButton {
+    background-color: #444;
+    color: white;
+}
+QComboBox {
+    background-color: #333;
+    color: white;
+}

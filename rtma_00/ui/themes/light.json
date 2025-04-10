@@ -1,0 +1,8 @@
+{
+    "background_color": "#f0f0f0",
+    "text_color": "#000000",
+    "highlight_color": "#007ACC",
+    "dial_color": "#cccccc",
+    "button_start": "#4CAF50",
+    "button_stop": "#F44336"
+}

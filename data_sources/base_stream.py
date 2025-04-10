@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 
 class BaseStream(ABC):
-    """
-    Defines the interface both real and synthetic streams will follow
-    """
+    """Abstract base class defining stream interface."""
     @abstractmethod
     def start(self):
         pass
