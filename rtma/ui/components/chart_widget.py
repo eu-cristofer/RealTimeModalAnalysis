@@ -4,13 +4,14 @@ chart_widget.py
 Widget for plotting real-time signals using PyQtGraph.
 """
 
-from utils.theme_manager import get_current_theme
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
-import pyqtgraph as pg
 import numpy as np
+import pyqtgraph as pg
+from PyQt6.QtWidgets import QVBoxLayout
+from .themed_plot_widget import ThemedPlotWidget
 
 
-class ChartWidget(QWidget):
+
+class ChartWidget(ThemedPlotWidget):
     """
     Chart widget for plotting real-time signals.
 
@@ -21,8 +22,8 @@ class ChartWidget(QWidget):
         super().__init__(parent)
         self.title = title
         self._init_ui()
-        self.set_theme(get_current_theme())
         self.channel_curves = {}
+        
 
     def _init_ui(self):
         layout = QVBoxLayout()
@@ -41,27 +42,7 @@ class ChartWidget(QWidget):
             self.channel_curves["main"] = self.plot_widget.plot(pen='y')
         self.channel_curves["main"].setData(data)
 
-    def set_theme(self, theme: str):
-        """
-        Adjust chart colors based on the current theme.
-
-        Parameters
-        ----------
-        theme : str
-            Either "dark" or "light"
-        """
-        if theme == "light":
-            self.plot_widget.setBackground("w")
-            self.plot_widget.getAxis("left").setPen("black")
-            self.plot_widget.getAxis("bottom").setPen("black")
-            self.plot_widget.showGrid(x=True, y=True, alpha=0.2)
-        else:
-            self.plot_widget.setBackground("k")
-            self.plot_widget.getAxis("left").setPen("white")
-            self.plot_widget.getAxis("bottom").setPen("white")
-            self.plot_widget.showGrid(x=True, y=True, alpha=0.5)
-
-
+    
     def plot_multiple(self, signal_dict: dict):
         """
         Plot multiple signals on the same chart.

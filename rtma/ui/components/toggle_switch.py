@@ -1,33 +1,51 @@
 from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtCore import Qt
+from utils.theme_manager import theme_manager
+
 
 class ToggleSwitch(QCheckBox):
-    def __init__(self, label_on="🌙 Dark Mode", label_off="☀️ Light Mode", parent=None):
-        super().__init__(label_on, parent)
-        self.label_on = label_on
-        self.label_off = label_off
-        self.setChecked(True)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.label_on = "🌙 Dark Mode"
+        self.label_off = "☀️ Light Mode"
+
+        # Setup visuals
         self.setTristate(False)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setStyleSheet(self._switch_style())
-        self.toggled.connect(self._update_label)
 
-    def _update_label(self, checked):
-        self.setText(self.label_on if checked else self.label_off)
+        # Sync state with theme
+        self.setChecked(theme_manager.get_current_theme() == "dark")
+        self._update_label(self.isChecked())
+
+        # Connect signals
+        self.toggled.connect(self._on_toggle)
+        theme_manager.theme_changed.connect(self._on_theme_change)
+
+    def _on_toggle(self, checked):
+        theme_manager.toggle_theme()
+
+    def _on_theme_change(self, theme):
+        self.blockSignals(True)
+        self.setChecked(theme == "dark")
+        self.blockSignals(False)
+        self._update_label(theme == "dark")
+
+    def _update_label(self, is_dark):
+        self.setText(self.label_on if is_dark else self.label_off)
 
     def _switch_style(self):
         return """
-        QCheckBox::indicator { width: 40px; height: 20px; }
+        QCheckBox::indicator { width: 36px; height: 18px; }
         QCheckBox::indicator:unchecked {
-            image: url(none);
             border: 1px solid #aaa;
-            border-radius: 10px;
+            border-radius: 9px;
             background-color: #ccc;
         }
         QCheckBox::indicator:checked {
-            image: url(none);
             border: 1px solid #666;
-            border-radius: 10px;
+            border-radius: 9px;
             background-color: #4caf50;
         }
         """

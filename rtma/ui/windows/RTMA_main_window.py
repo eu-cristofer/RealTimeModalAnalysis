@@ -14,7 +14,7 @@ from ui.components.chart_widget import ChartWidget
 from ui.components.fft_chart_widget import FFTChartWidget
 from ui.components.toggle_switch import ToggleSwitch
 from core.analyzer import compute_fft
-from utils.theme_manager import apply_theme, toggle_theme, get_current_theme
+from utils.theme_manager import theme_manager
 
 import numpy as np
 
@@ -33,9 +33,8 @@ class RTMAMainWindow(QMainWindow):
         self._setup_timer()
 
         # Apply dark theme and set chart backgrounds accordingly
-        apply_theme("dark")
-        self.time_chart.set_theme("dark")
-        self.fft_chart.set_theme("dark")
+        theme_manager.apply_theme("dark")
+
 
     def _setup_ui(self):
         self._setup_toolbar()
@@ -69,8 +68,7 @@ class RTMAMainWindow(QMainWindow):
         self.capture_button = QPushButton("📸 Capture")
 
         # Theme switch
-        self.theme_switch = ToggleSwitch()
-        self.theme_switch.toggled.connect(self._toggle_theme)
+        self.theme_switch = ToggleSwitch()  # Already handles connection internally
 
         toolbar.addWidget(QLabel("Input:"))
         toolbar.addWidget(self.stream_selector)
@@ -97,7 +95,5 @@ class RTMAMainWindow(QMainWindow):
         self.fft_chart.update_spectrum(freqs, mag)
 
     def _toggle_theme(self):
-        toggle_theme()
-        theme = get_current_theme()
-        self.time_chart.set_theme(theme)
-        self.fft_chart.set_theme(theme)
+        theme_manager.toggle_theme()
+

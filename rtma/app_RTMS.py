@@ -8,8 +8,6 @@ with CLI and UI support
 import sys
 import argparse
 from PyQt6.QtWidgets import QApplication
-from utils.theme_manager import apply_theme, get_current_theme
-# from app.main import run_main_window
 from ui.windows.launcher_window import LauncherWindow
 
 
@@ -22,7 +20,6 @@ def main():
     args = parser.parse_args()
 
     app = QApplication(sys.argv)
-    apply_theme("dark")
 
     if args.mode == "sg":
         win = run_main_window("sg")

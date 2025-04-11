@@ -6,6 +6,8 @@ App Selector Window for launching SG, RTMA, or both.
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
 from app.main import run_main_window
+from ui.components.toggle_switch import ToggleSwitch
+from utils.theme_manager import theme_manager
 
 
 class LauncherWindow(QWidget):
@@ -13,14 +15,21 @@ class LauncherWindow(QWidget):
         super().__init__()
         self.setWindowTitle("🎛️ RTMA App Suite")
         self.resize(300, 200)
+
+        # Apply current theme to match app styling
+        theme_manager.apply_theme("dark")
+        theme_manager.theme_changed.connect(self._apply_theme_to_self)
+
         self._setup_ui()
 
     def _setup_ui(self):
         layout = QVBoxLayout()
+        self.theme_toggle = ToggleSwitch()
+        layout.addWidget(self.theme_toggle)
 
-        title = QLabel("🔧 Real-Time Modal Suite")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 20px;")
-        layout.addWidget(title)
+        self.title = QLabel("🔧 Real-Time Modal Suite")
+        self.title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 20px;")
+        layout.addWidget(self.title)
 
         sg_button = QPushButton("🎛️ Launch Signal Generator")
         rtma_button = QPushButton("📈 Launch RTMA Analyzer")
@@ -47,4 +56,12 @@ class LauncherWindow(QWidget):
         else:
             self.app_window: QMainWindow = run_main_window(target)
             self.app_window.show()
-        self.hide()
+
+        self.hide()  # Hide only after windows are launched
+
+    def _apply_theme_to_self(self, theme: str):
+        """
+        Optional: Adjust launcher-specific styles if needed.
+        """
+        # You can adjust colors here if needed
+        pass
