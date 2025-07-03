@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QComboBox, QSlider, QDial, QPushButton, QGroupBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from core.waveforms import (
+from rtma.core.waveforms import (
     SineWave, SquareWave, TriangleWave, SawtoothWave,
     NoiseWave, PinkNoiseWave, WaveformComponent
 )
@@ -110,6 +110,7 @@ class WaveformControl(QWidget):
             The layout to which the control is added.
         """
         self.amp_slider = QSlider(Qt.Orientation.Vertical)
+        self.amp_slider.setMinimumHeight(40)
         self.amp_slider.setRange(0, 100)
         self.amp_slider.setValue(10)
         self.amp_slider.setTickInterval(10)

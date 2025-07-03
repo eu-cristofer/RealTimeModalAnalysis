@@ -6,7 +6,7 @@ Manages multiple waveform components for a single signal channel.
 
 from typing import List
 import numpy as np
-from core.waveforms import WaveformComponent
+from rtma.core.waveforms import WaveformComponent
 
 
 class SignalChannel:
@@ -61,9 +61,11 @@ class SignalChannel:
         np.ndarray
             Composite signal array.
         """
-        t = np.linspace(0, self.duration, int(self.sample_rate * self.duration), endpoint=False)
+        t = np.linspace(0,
+                        self.duration,
+                        int(self.sample_rate * self.duration),
+                        endpoint=False)
         signal = np.zeros_like(t)
-
         for component in self.components:
             signal += component.generate(t)
 

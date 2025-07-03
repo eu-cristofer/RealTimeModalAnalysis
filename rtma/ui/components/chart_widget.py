@@ -7,7 +7,7 @@ Widget for plotting real-time signals using PyQtGraph.
 import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QVBoxLayout
-from .themed_plot_widget import ThemedPlotWidget
+from rtma.ui.components.themed_plot_widget import ThemedPlotWidget
 
 
 
@@ -21,8 +21,8 @@ class ChartWidget(ThemedPlotWidget):
     def __init__(self, title="Signal", parent=None):
         super().__init__(parent)
         self.title = title
-        self._init_ui()
         self.channel_curves = {}
+        self._init_ui()
         
 
     def _init_ui(self):
@@ -43,28 +43,21 @@ class ChartWidget(ThemedPlotWidget):
         self.channel_curves["main"].setData(data)
 
     
-    def plot_multiple(self, signal_dict: dict):
-        """
-        Plot multiple signals on the same chart.
-
-        Parameters
-        ----------
-        signal_dict : dict[int, np.ndarray]
-            Dictionary mapping channel index to its signal array.
-        """
-        # color_list = ['r', 'g', 'b', 'y']
-        color_list = ['#d62728', '#1f77b4', '#2ca02c', '#ff7f0e']
-        t = np.linspace(0, 0.02, 1000)
-
-        # Update or create a plot curve for each channel
-        for ch, signal in signal_dict.items():
+    def plot_multiple(self, data_dict):
+        for ch, value in data_dict.items():
             if ch not in self.channel_curves:
-                self.channel_curves[ch] = self.plot_widget.plot(pen=color_list[ch % len(color_list)])
+                self.channel_curves[ch] = self.plot_widget.plot(pen=pg.intColor(ch))
+
+            # Handle two formats: (y_array) OR (x_array, y_array)
+            if isinstance(value, tuple) and len(value) == 2:
+                t, signal = value
+            else:
+                signal = np.array(value)
+                t = np.linspace(0, len(signal) / 1000, len(signal))  # Assume 1kHz for synthetic
+
+            if t.ndim != 1 or signal.ndim != 1 or len(t) != len(signal):
+                print(f"[SKIP] Invalid data for channel {ch}")
+                continue
+
             self.channel_curves[ch].setData(t, signal)
 
-        # Hide unused curves
-        for ch in list(self.channel_curves.keys()):
-            if ch not in signal_dict:
-                self.channel_curves[ch].hide()
-            else:
-                self.channel_curves[ch].show()

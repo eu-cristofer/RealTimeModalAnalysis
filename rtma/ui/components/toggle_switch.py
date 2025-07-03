@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QCheckBox
 from PyQt6.QtCore import Qt
-from utils.theme_manager import theme_manager
+from rtma.utils.theme_manager import theme_manager
 
 
 class ToggleSwitch(QCheckBox):
@@ -23,10 +23,20 @@ class ToggleSwitch(QCheckBox):
         self.toggled.connect(self._on_toggle)
         theme_manager.theme_changed.connect(self._on_theme_change)
 
-    def _on_toggle(self, checked):
+    def _on_toggle(self):
+        '''
+        When the user toggles the switch, _on_toggle is called.
+
+        NOTE:
+        =====
+        It delegates theme toggling to theme_manager.
+        '''
         theme_manager.toggle_theme()
 
     def _on_theme_change(self, theme):
+        '''
+        When the theme changes (from somewhere else), _on_theme_change updates the UI accordingly
+        '''
         self.blockSignals(True)
         self.setChecked(theme == "dark")
         self.blockSignals(False)

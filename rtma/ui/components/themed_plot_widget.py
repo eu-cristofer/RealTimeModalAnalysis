@@ -10,13 +10,14 @@ like `setBackground`, `getAxis`, and `showGrid`, such as those from PyQtGraph.
 
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import pyqtSlot
-from utils.theme_manager import theme_manager
+from rtma.utils.theme_manager import theme_manager
 
 
 class ThemedPlotWidget(QWidget):
     def __init__(self, parent=None):
         """
-        Initializes the themed plot widget and connects it to the global theme change signal.
+        Initializes the themed plot widget and connects it to the global
+        theme change signal.
         """
         super().__init__(parent)
         self._theme_applied = None
@@ -25,13 +26,15 @@ class ThemedPlotWidget(QWidget):
     @pyqtSlot(str)
     def set_theme(self, theme: str):
         """
-        Slot that applies a visual style to the plot based on the selected theme.
+        Slot that applies a visual style to the plot based on the selected
+        theme.
 
         Args:
             theme (str): The name of the theme ('light' or 'dark').
         """
         if theme == self._theme_applied:
             return  # 🚫 prevent recursion
+        
         self._theme_applied = theme
 
         if not hasattr(self, 'plot_widget'):

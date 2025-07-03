@@ -2,47 +2,114 @@
 SG_main_window.py
 
 Main window for the Signal Generator Station.
+
+This module defines the `SGMainWindow` class, the primary GUI for configuring,
+previewing, and broadcasting signals in real-time.
+
+Classes
+-------
+SGMainWindow : QMainWindow
+    Main GUI window to control signal generation, preview plots, and broadcast
+    options for the Signal Generator Station.
+
+Usage
+-----
+This window is usually started via the launcher to provide the user interface
+for configuring synthetic signal channels and controlling real-time broadcasting.
 """
+
+import numpy as np
 from PyQt6.QtWidgets import (
     QMainWindow, QToolBar, QPushButton, QComboBox,
     QWidget, QVBoxLayout, QTabWidget, QLabel
 )
 from PyQt6.QtCore import QTimer, Qt
 
-from ui.components.chart_widget import ChartWidget
-from ui.components.toggle_switch import ToggleSwitch
-from ui.windows.signal_generator_desk import SignalGeneratorDesk
-from utils.theme_manager import theme_manager
-from core.shared_buffer import create_shared_buffer
+from rtma.utils.logger import get_logger
+from rtma.ui.components.chart_widget import ChartWidget
+from rtma.ui.components.toggle_switch import ToggleSwitch
+from rtma.ui.windows.signal_generator_desk import SignalGeneratorDesk
+from rtma.utils.theme_manager import theme_manager
+from core.shared_buffer import create_shared_buffer, create_or_attach_shared_buffer
 
-import numpy as np
+log = get_logger(__name__)
 
 
 class SGMainWindow(QMainWindow):
     """
-    The main application window for the Signal Generator.
-    """
+    Main window for the Signal Generator application.
 
+    Provides an interface for signal configuration, visualization, and
+    broadcasting across multiple channels. Integrates a plot area, channel
+    tabs, and control toolbar.
+
+    Attributes
+    ----------
+    chart : ChartWidget
+        Plot area for displaying combined output of selected channels.
+    tab_widget : QTabWidget
+        Contains 4 tabs (one per signal channel) with independent controls.
+    channel_tabs : list of SignalGeneratorDesk
+        List of per-channel desk widgets for configuring individual signals.
+    plot_enabled : list of bool
+        Flag indicating whether each channel is enabled for plotting.
+    write_index : int
+        Index for writing to the shared ring buffer (if enabled).
+    theme_toggle : ToggleSwitch
+        Toggle switch to change between light and dark UI themes.
+    output_selector : QComboBox
+        Combo box to select the output destination (e.g., RTMA or OPC).
+    start_btn : QPushButton
+        Button to start the signal generation process.
+    stop_btn : QPushButton
+        Button to stop the signal generation process.
+    broadcast_btn : QPushButton
+        Button to start the broadcasting mechanism.
+    """
     def __init__(self):
+        """
+        Construct the main signal generator window and initialize UI elements.
+        """
+        log.debug(f"Instantiating SGMainWindow")
         super().__init__()
         self.setWindowTitle("Signal Generator Station")
         self.resize(792, 900)
 
+        # Container to store the option of plot the charts into the 
+        # Signal Generator window for preview
         self.plot_enabled = [True, True, True, True]
+
+        # Why is this?
         self.channel_tabs = []
-        self.write_index = 0  # for shared memory ring buffer
-
         
-        self._setup_ui()
+        # For shared Ring Buffer
+        self.write_index = 0
+        
+        # Function to build up the user interface
         self._setup_timer()
+        self._setup_ui()
 
-        # Apply theme
+        # Apply initial theme
         theme_manager.apply_theme("dark")
 
         # 🔌 Create shared memory buffer for RTMA streaming
-        self.shm, self.shared_buffer = create_shared_buffer()
+        self.shm, self.shared_buffer = create_or_attach_shared_buffer()
+
+    def start_signal(self):
+        self.timer.start()
+
+    def stop_signal(self):
+        self.timer.stop()
+
+    def _setup_timer(self):
+        self.timer = QTimer()
+        self.timer.setInterval(50)
+        self.timer.timeout.connect(self._update_chart)
 
     def _setup_ui(self):
+        """
+        Setup and layout the main UI components: toolbar, chart, and tabs.
+        """
         self._setup_toolbar()
 
         main_widget = QWidget()
@@ -54,15 +121,23 @@ class SGMainWindow(QMainWindow):
         self.tab_widget = QTabWidget()
         for i in range(4):
             tab = SignalGeneratorDesk(channel_id=i)
-            tab.plot_checkbox.stateChanged.connect(lambda state, idx=i: self._toggle_plot(idx, state))
+            # Note: Qt emits an integer value, which is passed as the first and only
+            # argument to any connected function.
+            tab.plot_checkbox.stateChanged.connect(lambda state,
+                                                   idx=i: self._toggle_plot(idx, state))
             self.channel_tabs.append(tab)
             self.tab_widget.addTab(tab, f"CH{i+1}")
 
         main_layout.addWidget(self.tab_widget)
+        
         main_widget.setLayout(main_layout)
+        
         self.setCentralWidget(main_widget)
 
     def _setup_toolbar(self):
+        """
+        Create and add the main toolbar to the window.
+        """
         toolbar = QToolBar("Main Toolbar")
         self.addToolBar(toolbar)
 
@@ -90,17 +165,6 @@ class SGMainWindow(QMainWindow):
     def _toggle_theme(self):
         theme_manager.toggle_theme()
 
-    def start_signal(self):
-        self.timer.start()
-
-    def stop_signal(self):
-        self.timer.stop()
-
-    def _setup_timer(self):
-        self.timer = QTimer()
-        self.timer.setInterval(50)
-        self.timer.timeout.connect(self._update_chart)
-
     def _update_chart(self):
         """
         Collects signals from each channel, updates chart, and writes to shared memory.
@@ -120,6 +184,10 @@ class SGMainWindow(QMainWindow):
         """
         Write current signal chunk into shared buffer with circular indexing.
         """
+        if not signals:
+            print("⚠️ No signals generated; skipping write")
+            return
+
         CHUNK = len(next(iter(signals.values())))
         for ch, data in signals.items():
             buffer = self.shared_buffer[ch]

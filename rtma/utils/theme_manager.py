@@ -21,7 +21,7 @@ This design ensures:
    directory. If a theme file is missing, the app falls back to an empty style safely.
 
 This manager assumes themes are defined as `.qss` (Qt Style Sheets) in the `ui/themes/` 
-directory relative to the project root.
+directory relative to the project root `rtma`.
 
 Usage:
 ------

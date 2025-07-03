@@ -12,12 +12,12 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from ui.components.waveform_control import WaveformControl
-from core.signal_channel import SignalChannel
-from utils.logger import setup_logging
+from rtma.ui.components.waveform_control import WaveformControl
+from rtma.core.signal_channel import SignalChannel
+from rtma.utils.logger import get_logger
 import numpy as np
 
-logger = setup_logging("Signal Generator")
+logger = get_logger(__name__)
 
 
 class SignalGeneratorDesk(QWidget):

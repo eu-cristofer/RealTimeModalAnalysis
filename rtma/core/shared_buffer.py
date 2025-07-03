@@ -31,3 +31,23 @@ def attach_shared_buffer():
     shm = shared_memory.SharedMemory(name=SHM_NAME)
     buffer = np.ndarray((CHANNELS, BUFFER_SIZE), dtype=np.float32, buffer=shm.buf)
     return shm, buffer
+
+
+def create_or_attach_shared_buffer():
+    try:
+        # Try creating it
+        shm = shared_memory.SharedMemory(create=True,
+                                         size=np.float32().nbytes * CHANNELS * BUFFER_SIZE,
+                                         name=SHM_NAME)
+        buffer = np.ndarray((CHANNELS, BUFFER_SIZE),
+                            dtype=np.float32,
+                            buffer=shm.buf)
+        buffer[:] = 0.0
+        return shm, buffer
+    except FileExistsError:
+        # Fallback to attach
+        shm = shared_memory.SharedMemory(name=SHM_NAME)
+        buffer = np.ndarray((CHANNELS, BUFFER_SIZE),
+                            dtype=np.float32,
+                            buffer=shm.buf)
+        return shm, buffer

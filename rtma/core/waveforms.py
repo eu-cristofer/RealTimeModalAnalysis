@@ -57,7 +57,6 @@ class SineWave(WaveformComponent):
     """
     Sine wave generator.
     """
-
     def generate(self, t: np.ndarray) -> np.ndarray:
         return self.amplitude * np.sin(2 * np.pi * self.frequency * t + self.phase) + self.offset
     
@@ -76,7 +75,6 @@ class SquareWave(WaveformComponent):
     """
     Square wave generator.
     """
-
     def generate(self, t: np.ndarray) -> np.ndarray:
         return self.amplitude * np.sign(np.sin(2 * np.pi * self.frequency * t + self.phase)) + self.offset
 

@@ -1,22 +1,20 @@
 """
-rtma_main_window.py
+RTMA_main_window.py
 
 Main window for the Real-Time Modal Analyzer (RTMA).
 """
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QPushButton,
-    QComboBox, QToolBar, QLabel
+    QMainWindow, QVBoxLayout, QWidget, QToolBar, QLabel, QComboBox,
+    QPushButton, QDockWidget
 )
-from PyQt6.QtCore import QTimer
-
-from ui.components.chart_widget import ChartWidget
-from ui.components.fft_chart_widget import FFTChartWidget
-from ui.components.toggle_switch import ToggleSwitch
-from core.analyzer import compute_fft
-from utils.theme_manager import theme_manager
-
-import numpy as np
+from PyQt6.QtCore import QTimer, Qt
+from rtma.utils.theme_manager import theme_manager
+from rtma.ui.components.toggle_switch import ToggleSwitch
+from rtma.ui.components.stream_manager_dock import StreamManagerDock
+from rtma.ui.components.stream_dock_widget import StreamDockWidget
+from rtma.ui.components.sg_stream_widget import SGStreamSource
+import subprocess
 
 
 class RTMAMainWindow(QMainWindow):
@@ -27,48 +25,37 @@ class RTMAMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Real-Time Modal Analyzer")
-        self.resize(1200, 700)
+        self.resize(1200, 800)
 
-        self._setup_ui()
+        self._setup_toolbar()
         self._setup_timer()
 
-        # Apply dark theme and set chart backgrounds accordingly
+        # Apply dark theme
         theme_manager.apply_theme("dark")
 
+        # Manage stream docks
+        self.stream_docks = {}
 
-    def _setup_ui(self):
-        self._setup_toolbar()
+        # Add Stream Manager dock on the left
+        self.stream_manager = StreamManagerDock()
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.stream_manager)
 
-        # Central layout
-        central_widget = QWidget()
-        main_layout = QVBoxLayout()
-
-        # Charts: Time-domain and FFT
-        self.time_chart = ChartWidget("Live Time Signal")
-        self.fft_chart = FFTChartWidget("Frequency Spectrum")
-
-        chart_row = QHBoxLayout()
-        chart_row.addWidget(self.time_chart)
-        chart_row.addWidget(self.fft_chart)
-
-        main_layout.addLayout(chart_row)
-        central_widget.setLayout(main_layout)
-        self.setCentralWidget(central_widget)
+        # Connect signals
+        self.stream_manager.add_sg_stream.connect(self._add_sg_stream)
+        self.stream_manager.add_ni_stream.connect(self._add_ni_stream)
+        self.stream_manager.remove_stream.connect(self._remove_stream)
 
     def _setup_toolbar(self):
         toolbar = QToolBar("RTMA Toolbar")
         self.addToolBar(toolbar)
 
-        # Stream selector
         self.stream_selector = QComboBox()
-        self.stream_selector.addItems(["Synthetic", "Sensor A", "Sensor B"])
+        self.stream_selector.addItems(["None", "Signal Generator", "NI cDAQ"])
 
-        # Controls
         self.pause_button = QPushButton("⏸ Pause")
         self.capture_button = QPushButton("📸 Capture")
 
-        # Theme switch
-        self.theme_switch = ToggleSwitch()  # Already handles connection internally
+        self.theme_switch = ToggleSwitch()
 
         toolbar.addWidget(QLabel("Input:"))
         toolbar.addWidget(self.stream_selector)
@@ -81,19 +68,61 @@ class RTMAMainWindow(QMainWindow):
     def _setup_timer(self):
         self.timer = QTimer()
         self.timer.setInterval(50)
-        self.timer.timeout.connect(self._update_chart)
-        self.timer.start()
 
-    def _update_chart(self):
-        # Simulate synthetic signal input
-        t = np.linspace(0, 0.02, 1000)
-        signal = np.sin(2 * np.pi * 60 * t) + 0.5 * np.sin(2 * np.pi * 200 * t)
+    def _add_sg_stream(self):
+        name = "SG Stream"
+        if name in self.stream_docks:
+            return
 
-        self.time_chart.update_data(signal)
+        import subprocess
+        import time
+        from core.shared_buffer import SHM_NAME
+        from multiprocessing import shared_memory
+        from ui.components.sg_stream_widget import SGStreamSource
+        from ui.components.stream_dock_widget import StreamDockWidget
+        from PyQt6.QtWidgets import QDockWidget
 
-        freqs, mag = compute_fft(signal, sample_rate=1000)
-        self.fft_chart.update_spectrum(freqs, mag)
+        subprocess.Popen(["python", "rtma/app_RTMS.py", "--mode", "sg"])
 
-    def _toggle_theme(self):
-        theme_manager.toggle_theme()
+        # Wait for shared memory to become available
+        for _ in range(20):  # try for ~2 seconds
+            try:
+                shm = shared_memory.SharedMemory(name=SHM_NAME)
+                shm.close()
+                break
+            except FileNotFoundError:
+                time.sleep(0.1)
+        else:
+            print("ERROR: Shared buffer not found. SG app failed to start?")
+            return
+
+        stream = SGStreamSource()
+        content = StreamDockWidget(stream, title=name)
+
+        dock_widget = QDockWidget(name)
+        dock_widget.setWidget(content)
+
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock_widget)
+        self.stream_docks[name] = dock_widget
+        self.stream_manager.add_stream_name(name)
+
+
+
+    def _add_ni_stream(self):
+        # Placeholder for NI stream integration
+        name = "NI Stream"
+        if name in self.stream_docks:
+            return
+        # You can later replace this with NIStreamSource
+        # stream = NIStreamSource()
+        # dock = StreamDockWidget(stream, title=name)
+        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+        # self.stream_docks[name] = dock
+        # self.stream_manager.add_stream_name(name)
+        pass
+
+    def _remove_stream(self, name: str):
+        if name in self.stream_docks:
+            dock_widget = self.stream_docks.pop(name)
+            self.removeDockWidget(dock_widget)
 

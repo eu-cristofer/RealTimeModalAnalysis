@@ -1,64 +1,65 @@
+"""
+Centralised logger for CocoaEngineUI
+------------------------------------
+✓ Console output always on (root logger).
+✓ Optional rotating-file handler (call `setup_logging(log_to_file=True)`).
+✓ Includes module name in log output.
+"""
+
+from __future__ import annotations
 import logging
-import os
-from datetime import datetime
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
-def setup_logging(name="Application"):
+# --- Format strings ----------------------------------------------------
+_FMT = "%(asctime)s | %(levelname)-5s | %(module)s | %(message)s"
+_DATEFMT = "%Y-%m-%d %H:%M:%S"
+
+# --- Logging Setup -----------------------------------------------------
+def setup_logging(level: int = logging.INFO,
+                  log_to_file: bool = False,
+                  log_file: str | Path = "rtma_app.log",
+                  max_bytes: int = 1_000_000,
+                  backup_count: int = 3) -> bool:
     """
-    Set up and return a configured logger with console and file output.
-
-    This function initializes a logger with the specified name. The logger outputs
-    messages to both the console and a timestamped log file. The log files are stored
-    in a `logs` directory located in the same directory as the executing script.
+    Configure root logger once. Subsequent calls are ignored.
 
     Parameters
     ----------
-    name : str, optional
-        The name of the logger. This name is also used in the log file name.
-        Default is "Application".
+    level : logging level (default INFO)
+    log_to_file : when True, adds a rotating-file handler
+    log_file : path to *.log* file
+    max_bytes : file size before rotation
+    backup_count : how many old logs to keep
 
     Returns
     -------
-    logging.Logger
-        A logger instance configured with a console stream handler and a file handler.
-        Both handlers share a common formatter.
-
-    Notes
-    -----
-    - Log files are named using the pattern `{name}_{YYYYMMDD_HHMMSS}.log`.
-    - The `logs` directory is created if it does not exist.
-    - Logging level is set to DEBUG for capturing detailed information.
-
-    Examples
-    --------
-    >>> logger = setup_logging("MyApp")
-    >>> logger.info("Application started.")
-    >>> logger.debug("Debugging info.")
+    bool : True if setup was performed, False if already configured
     """
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-
-    # Create logs directory
-    log_dir = os.path.join(os.path.dirname(__file__), "logs")
-    os.makedirs(log_dir, exist_ok=True)
-
-    # Log file path
-    log_file = os.path.join(
-        log_dir, f"{name.lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    )
-
-    # Formatter
-    formatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(message)s")
+    root = logging.getLogger()
+    if root.handlers:
+        return False
 
     # Console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
+    console = logging.StreamHandler()
+    console.setFormatter(logging.Formatter(_FMT, datefmt=_DATEFMT))
+    root.addHandler(console)
 
-    # File handler
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(formatter)
+    # Optional file handler
+    if log_to_file:
+        log_file = Path(log_file)
+        log_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # Add handlers to logger
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
+        file_handler = RotatingFileHandler(log_file, maxBytes=max_bytes,
+                                           backupCount=backup_count,
+                                           encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter(_FMT, datefmt=_DATEFMT))
+        root.addHandler(file_handler)
 
-    return logger
+    root.setLevel(level)
+    return True
+
+# --- Logger Access -----------------------------------------------------
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Helper so every module does `log = get_logger(__name__)`."""
+    return logging.getLogger(name)
